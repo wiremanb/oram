@@ -1,0 +1,52 @@
+version: '3'
+services:
+  oram_nignx:
+    image: nginx
+    volumes:
+      - ./server_config/dev.nginx.conf:/etc/nginx/conf.d/default.conf
+      - ./public:/app/public:ro
+    environment:
+      - VIRTUAL_HOST=oram.docker
+    ports:
+      - "8081:80"
+    expose:
+      - "8081:80"
+    depends_on:
+      - oram
+      - oram_mariadb
+
+  oram:
+    build: .
+    image: oram:dev
+    command: unicorn -c config/unicorn_dev.rb -E development
+    stdin_open: true
+    tty: true
+    ports:
+      - "8080:8080"
+    expose:
+      - "8080"
+    env_file: ./dev.env
+    working_dir: /app
+    volumes:
+      - .:/app
+    depends_on:
+      - oram_mariadb
+
+  oram_mariadb:
+    image: mariadb
+    container_name: oram_mariadb_dev
+    volumes:
+      - data-mysql:/var/lib/mysql
+      - ./mysql:/docker-entrypoint-initdb.d:ro
+    environment:
+      - MYSQL_ROOT_PASSWORD=password
+      - MYSQL_DATABASE=oram_development
+    ports:
+      - "3306:3306"
+    expose:
+      - "3306"
+
+volumes:
+  data-mysql:
+    driver: local
+
